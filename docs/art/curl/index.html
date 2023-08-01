@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, height=device-height,
+    initial-scale=1.0, minimum-scale=1.0, user-scalable=no">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="icon" href="data:;base64,iVBORwOKGO=" />
+  <title>Floribundle /art/curl/</title>
+
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+      font: 0/0 Arial, Helvetica, sans-serif; /* remove unexpected gaps */
+      background: rgb(39, 19, 67);
+    }
+
+
+
+
+    /* MENU */
+
+    ul {
+      position: fixed;
+      box-sizing: border-box;
+      top: 0;
+      left: 0;
+      width: 60px;
+      height: 49px;
+      padding: 10px;
+      overflow: hidden;
+      transition: width 0.2s;
+    }
+    body.show-menu ul {
+      width: 100vw;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    li {
+        list-style: none;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+    a {
+      display: block;
+      padding: 10px;
+      margin: 2px;
+      background: rgba(0, 0, 16, 0.3);
+      color: rgb(200, 77, 0);
+      font-size: 12px;
+      line-height: 16px;
+      text-decoration: none;
+      border-radius: 2px;
+      transition: background-color 0.1s, color 0.3s;
+    }
+    a:hover {
+      background: rgba(0, 0, 8, 0.6);
+      color: rgb(255, 208, 53);
+    }
+    #toggle-menu .close {
+      display: inline-block;
+      opacity: 0;
+      transform: translate(4px, 0) scale(3);
+      transition: opacity 0.3s;
+    }
+    #toggle-menu .open {
+      display: inline-block;
+      opacity: 1;
+      transform: translate(-4.5px, -3px) scale(2.4);
+      transition: opacity 0.3s;
+    }
+    body.show-menu #toggle-menu .close {
+      opacity: 1;
+    }
+    body.show-menu #toggle-menu .open {
+      opacity: 0;
+    }
+
+
+
+
+    /* MENU SCROLLBARS */
+
+    :root {
+      --scrollbarWidth: 12px;
+      --scrollbarBg: rgba(0, 0, 16, 0.3);
+      --scrollbarThumb: rgb(200, 77, 0);
+    }
+    ul {
+      scrollbar-width: var(--scrollbarWidth);
+      scrollbar-color: var(--scrollbarThumb) var(--scrollbarBg);
+    }
+    ul::-webkit-scrollbar {
+      width: var(--scrollbarWidth);
+    }
+    ul::-webkit-scrollbar-track {
+      background: var(--scrollbarBg);
+    }
+    ul::-webkit-scrollbar-thumb {
+      background-color: var(--scrollbarThumb);
+      border-radius: 6px;
+      border: 3px solid var(--scrollbarBg);
+    }
+
+
+
+
+    /* HEADING */
+
+    h1 {
+      margin: 18px 0 0 56px;
+      color: rgb(200, 77, 0);
+      font-size: 18px;
+      line-height: 24px;
+      transition: opacity 0.3s;
+    }
+    body.show-menu h1 {
+      opacity: 0;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>Teardrop</h1>
+  <nav>
+    <ul>
+      <li><a href="javascript:void(0)" id="toggle-menu"
+        onclick="document.body.classList.toggle('show-menu')"><span class="close"
+        >&times;</span><span class="open"
+        >&#9776;</span></a></li>
+      <li><a href="/">Floribundle Home</a></li>
+      <li><a href="https://loop.coop/">Visit Loop.Coop</a></li>
+      <li><a href="#teardrop">Teardrop</a></li>
+      <li><a href="#twill">Twill</a></li>
+      <li><a href="/art/">More Floribundle Art</a></li>
+      <li><a href="javascript:void(0)" id="help">Help!</a></li>
+    </ul>
+  </nav>
+</body>
+</html>

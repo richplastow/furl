@@ -1,0 +1,33 @@
+[package]
+name = "frw"
+version = "0.0.1"
+authors = ["Loop.Coop <info@loop.coop>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/mod.rs"
+
+[dependencies]
+console_error_panic_hook = "0.1.6"
+js-sys = "0.3.47"
+wasm-bindgen = "0.2.73"
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+    'console',
+    'Document',
+    'Element',
+    'HtmlCanvasElement',
+    'WebGlBuffer',
+    'WebGlProgram',
+    'WebGlRenderingContext',
+    'WebGlShader',
+    'WebGlUniformLocation',
+    'Window',
+]
+
+[profile.release]
+# This is the default - don't optimize, and also turn on cfg(debug_assertions)
+opt-level = 0

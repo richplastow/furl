@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, height=device-height,
+    initial-scale=1.0, minimum-scale=1.0, user-scalable=no">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="icon" href="data:;base64,iVBORwOKGO=" />
+  <title>furl</title>
+
+  <style>
+    body {
+      padding: 10px;
+      margin: 0;
+      font: 0/0 Arial, Helvetica, sans-serif; /* remove unexpected gaps */
+      text-align: center;
+      transition: background-color 0.5s;
+      background: rgb(9, 51, 69);
+      color: rgb(142, 195, 178);
+    }
+    main, canvas {
+      display: inline-block;
+      vertical-align: top;
+    }
+    canvas {
+      width: 1024px;
+      height: 576px;
+      margin: 0 12px 12px 0;
+      background: rgb(10, 39, 52);
+    }
+    body.CursorKind-Default canvas {
+      cursor: default;
+    }
+    body.CursorKind-Pointer canvas {
+      cursor: pointer;
+    }
+
+    a {
+      color: rgb(0, 173, 200);
+    }
+
+
+
+
+    /* SCROLLBARS */
+
+    :root {
+      --scrollbarWidth: 12px;
+      --scrollbarBg: rgba(0, 0, 0, 0.3);
+      --scrollbarThumb: rgba(142, 195, 178, 0.3);
+    }
+    .scrollable {
+      scrollbar-width: var(--scrollbarWidth);
+      scrollbar-color: var(--scrollbarThumb) var(--scrollbarBg);
+    }
+    .scrollable::-webkit-scrollbar {
+      width: var(--scrollbarWidth);
+    }
+    .scrollable::-webkit-scrollbar-track {
+      background: var(--scrollbarBg);
+    }
+    .scrollable::-webkit-scrollbar-thumb {
+      background-color: var(--scrollbarThumb);
+      border-radius: 6px;
+      border: 3px solid var(--scrollbarBg);
+    }
+
+
+
+
+    /* PERFORMANCE */
+
+    #performance {
+      position: absolute;
+      left: 20px;
+      top: 5px; /* height will be set by onEnvironmentChange() */
+      overflow: hidden;
+      text-align: left;
+      background: #0003;
+      z-index: 99;
+    }
+    #performance >div {
+      margin-bottom: 5px;
+      height: 2px;
+      width: 0; /* width will be set by tick_develop() or tick_benchmark() */
+    }
+    #performance >div#sixty_fps {
+      margin-bottom: -2px;
+      width: 166px;
+      background: #000;
+    }
+    #total { background: #39c; }
+    #phase-1 { background: rgb(123, 204, 216); }
+    #phase-2 { background: rgb(135, 188, 235); }
+    #phase-3 { background: rgb(100, 157, 237); }
+    #phase-4 { background: rgb(100, 116, 237); }
+    #phase-5 { background: rgb(127, 100, 237); }
+    #phase-6 { background: rgb(162, 100, 237); }
+    #phase-7 { background: rgb(203, 100, 237); }
+    #phase-8 { background: rgb(237, 100, 216); }
+    #phase-9 { background: rgb(237, 100, 148); }
+
+
+
+
+    /* DESIGN */
+
+    #design {
+      position: absolute;
+      left: 20px;
+      top: 90px;
+      bottom: 5px;
+      width: 308px;
+      overflow: hidden;
+      overflow-y: scroll;
+      text-align: left;
+      background: #0003;
+      z-index: 99;
+    }
+    #design-notes {
+      font-size: 12px;
+      line-height: 16px;
+    }
+    #design button,
+    #design fieldset {
+      font-size: 12px;
+    }
+    #design fieldset {
+      overflow: hidden;
+      padding: 0;
+      border: none;
+      font-size: 12px;
+    }
+    #design fieldset.hid {
+      height: 24px;
+    }
+    #design h4 {
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    #design h4::before {
+      position: absolute;
+      content: '▼';
+      transition: transform 0.15s;
+    }
+    #design fieldset.hid h4::before {
+      transform: rotate(-90deg);
+    }
+    #design span,
+    #design label {
+      padding: 0;
+      margin: 0;
+      vertical-align: text-top;
+      font: 8px Monaco, 'Lucida Console', 'Courier New', Courier, monospace;
+    }
+    #design input[type=range] {
+      width: 100px;
+    }
+    #design input[type=range].slider-sm,
+    #design input[type=range].slider-tm {
+      width: 40px;
+    }
+    #design input[type=range].slider-s {
+      width: 230px;
+    }
+
+
+
+
+    /* DEVELOP */
+
+    #develop {
+      position: absolute;
+      right: 20px;
+      width: 240px;
+      top: 5px;
+      bottom: 5px; /* bottom may be set to auto by onEnvironmentChange() */
+      overflow: hidden;
+      text-align: left;
+      background: #0003;
+      z-index: 99;
+    }
+    #develop button,
+    #develop select {
+      margin: 5px;
+      font-size: 14px;
+    }
+    #tick-button {
+      display: none;
+      float: right;
+    }
+    body.framerate-off #tick-button {
+      display: block;
+    }
+
+  </style>
+</head>
+<body class="CursorKind-Default">
+  <h1 style="font-size:24px;">furl</h1>
+
+
+
+
+  <!-- PERFORMANCE -->
+  <aside id="performance">
+    <div id="sixty_fps"></div>
+    <div id="total"></div>
+    <div id="phase-1"></div>
+    <div id="phase-2"></div>
+    <div id="phase-3"></div>
+    <div id="phase-4"></div>
+    <div id="phase-5"></div>
+    <div id="phase-6"></div>
+    <div id="phase-7"></div>
+    <div id="phase-8"></div>
+    <div id="phase-9"></div>
+  </aside>
+
+
+
+
+  <!-- DESIGN -->
+  <aside id="design" class="scrollable"></aside>
+
+
+
+
+  <!-- DEVELOP -->
+  <aside id="develop">
+    <select id="environment">
+      <option value="production">Production &nbsp;</option>
+      <option value="develop">Develop &nbsp;</option>
+      <option value="benchmark">Benchmark &nbsp;</option>
+    </select>
+    <br>
+    <select id="scene_container_name">
+      <option value="AloneFurl">AloneFurl &nbsp;</option>
+      <option value="RainbowCactus">RainbowCactus &nbsp;</option>
+      <option value="BlueRedBoxes">BlueRedBoxes &nbsp;</option>
+      <option value="Empty">Empty &nbsp;</option>
+    </select>
+    <br>
+    <select id="framerate">
+      <option value="sixty">60 fps &nbsp;</option>
+      <option value="twelve">12 fps &nbsp;</option>
+      <option value="one">1 fps &nbsp;</option>
+      <option value="off">Off &nbsp;</option>
+    </select>
+    <button id="tick-button">Tick</button>
+    <br>
+    <select id="camera_preset">
+      <option value="ChosenByScene">Scene’s camera choice &nbsp;</option>
+      <option value="OrthographicFront">Orthographic Front &nbsp;</option>
+      <option value="OrthographicLeft">Orthographic Left &nbsp;</option>
+      <option value="OrthographicTop">Orthographic Top &nbsp;</option>
+    </select>
+    <br>
+    <select id="guides_preset">
+      <option value="ChosenByScene">Scene’s guides choice &nbsp;</option>
+      <option value="NoGuides">NoGuides &nbsp;</option>
+      <option value="All10m">10m All Guides &nbsp;</option>
+      <option value="All1m">1m All Guides &nbsp;</option>
+      <option value="AxesOnly10m">10m Axes &nbsp;</option>
+      <option value="AxesOnly1m">1m Axes &nbsp;</option>
+      <option value="GridsOnly10m">10m Grids &nbsp;</option>
+      <option value="GridsOnly1m">1m Grids &nbsp;</option>
+    </select>
+    <br>
+    <select id="lod_preset">
+      <option value="ChosenByScene">Scene’s LoD choice &nbsp;</option>
+      <option value="All0">All Meshes LoD 0 &nbsp;</option>
+      <option value="All1">All Meshes LoD 1 &nbsp;</option>
+    </select>
+    <br>
+    <select id="wireframe_preset">
+      <option value="ChosenByScene">Scene’s wireframe choice &nbsp;</option>
+      <option value="Dots">Dots &nbsp;</option>
+      <option value="Lines">Lines &nbsp;</option>
+      <option value="Solid">Solid &nbsp;</option>
+    </select>
+  </aside>
+
+
+
+
+  <main>
+    <canvas id="app" width="1024" height="576"></canvas>
+  </main>
+
+  <div id="wasm-info"></div>
+  <script>!function($d){ // Display anything sent to console.info() on screen
+    $d.style = 'position:fixed; top:99px; left:9px; right:9px; text-align:left;\
+      font:14px/20px monospace; background:#112a; color:#9cf; z-index:8;';
+    var orig = window.console && console.info; if (orig.apply) { // not MSIE
+      console.info = function(a) { orig.apply(console, arguments);
+        $d.style.padding = '9px'; // no padding or content at start
+        $d.innerHTML += a + '<br>\n' } }
+  }(document.getElementById('wasm-info'))</script>
+
+  <pre id="wasm-panic"></pre>
+  <script>!function($p){ // Display the error on-screen, if wasm panics
+    $p.style = 'position:fixed; top:80px; left:9px; font:14px/20px monospace;\
+      border-radius:6px; background:#211a; color:#f9c; z-index:9;';
+    var orig = window.console && console.error; if (orig.apply) { // not MSIE
+      console.error = function(a) { orig.apply(console, arguments); var m =
+        a.match && a.match(/^panicked at '"?([A-Z]\d{5} [A-Z]+ ERROR: [^'":]+)/);
+        if (m) { $p.style.padding = '9px'; // no padding or content at start
+          $p.innerHTML += m[1] + '\n' } } }
+  }(document.getElementById('wasm-panic'))</script>
+
+
+  <script>
+    window.frw_init = function (
+      App,
+      CameraPreset,
+      GuidesPreset,
+      LodPreset,
+      SceneContainerName,
+      WireframePreset,
+    ) { try {
+
+
+
+
+      // HTML ELEMENTS
+
+      const bodyClassList = document.body.classList;
+      const $canvas = document.querySelector('#app');
+      const $performance = document.querySelector('#performance');
+      const $total = document.querySelector('#total');
+      const $phase1 = document.querySelector('#phase-1');
+      const $phase2 = document.querySelector('#phase-2');
+      const $phase3 = document.querySelector('#phase-3');
+      const $phase4 = document.querySelector('#phase-4');
+      const $phase5 = document.querySelector('#phase-5');
+      const $phase6 = document.querySelector('#phase-6');
+      const $phase7 = document.querySelector('#phase-7');
+      const $phase8 = document.querySelector('#phase-8');
+      const $phase9 = document.querySelector('#phase-9');
+      const $design = document.querySelector('#design');
+      const $develop = document.querySelector('#develop');
+      const $environmentSelect = document.querySelector('#environment');
+      const $scenecontainernameSelect = document.querySelector('#scene_container_name');
+      const $framerateSelect = document.querySelector('#framerate');
+      const $camerapresetSelect = document.querySelector('#camera_preset');
+      const $guidespresetSelect = document.querySelector('#guides_preset');
+      const $lodpresetSelect = document.querySelector('#lod_preset');
+      const $wireframepresetSelect = document.querySelector('#wireframe_preset');
+
+
+
+
+      // DEVELOP
+
+      // Switch the `tick()` function when the #environment dropdown changes.
+      let environment;
+      let tick = tick_production;
+      if (localStorage.getItem('environment'))
+        $environmentSelect.value = localStorage.getItem('environment');
+      onEnvironmentChange();
+      function onEnvironmentChange() {
+        const environment = $environmentSelect.value;
+        console.log(environment);
+        localStorage.setItem('environment', environment);
+        switch (environment) {
+          case 'production':
+            tick = tick_production;
+            $performance.style.height = '0'; // hide all the performance bars
+            $develop.style.bottom = 'auto'; // hide all but the #environment dropdown
+            $develop.style.height = '30px'; // hide all but the #environment dropdown
+            break;
+          case 'develop':
+            tick = tick_develop;
+            $total.style.backgroundColor = '#39c'; // stays this colour
+            $performance.style.height = '2px'; // space for one bar
+            $develop.style.bottom = '5px'; // show all dropdowns
+            $develop.style.height = 'auto'; // show all dropdowns
+            break;
+          case 'benchmark':
+            tick = tick_benchmark;
+            $total.style.backgroundColor = '#0000'; // becomes #0f0, #fc0 or #f06
+            $performance.style.height = '70px'; // space for ten bars
+            $develop.style.bottom = '5px'; // show all dropdowns
+            $develop.style.height = 'auto'; // show all dropdowns
+            break;
+        }
+      }
+      $environmentSelect.addEventListener('change', onEnvironmentChange);
+
+      // 
+      if (localStorage.getItem('scene_container_name'))
+        $scenecontainernameSelect.value = localStorage.getItem('scene_container_name');
+      let scene_container_name = $scenecontainernameSelect.value; // eg 'Empty'
+      function onSceneContainerNameChange() {
+        scene_container_name = $scenecontainernameSelect.value;
+        localStorage.setItem('scene_container_name', scene_container_name);
+        window.location.reload();
+      }
+      $scenecontainernameSelect.addEventListener('change', onSceneContainerNameChange);
+
+      // 
+      let framerate;
+      if (localStorage.getItem('framerate'))
+        $framerateSelect.value = localStorage.getItem('framerate');
+      onFramerateChange();
+      function onFramerateChange() {
+        const previous_framerate = framerate;
+        framerate = $framerateSelect.value; // eg 'twelve'
+        localStorage.setItem('framerate', framerate);
+        bodyClassList[framerate=='off'?'add':'remove']('framerate-off');
+        if (previous_framerate === 'off') { tick(performance.now()) }
+      }
+      $framerateSelect.addEventListener('change', onFramerateChange);
+
+      // It may be useful to send ticks one-by-one.
+      // The tick-button is only visible when the framerate is set to ‘Off’.
+      document.querySelector('#tick-button').addEventListener('click', _ => {
+        tick(performance.now());
+        app.log_timer();
+      });
+
+      // 
+      let camera_preset;
+      if (localStorage.getItem('camera_preset'))
+        $camerapresetSelect.value = localStorage.getItem('camera_preset');
+      onCameraPresetChange();
+      function onCameraPresetChange() {
+        camera_preset = $camerapresetSelect.value;
+        localStorage.setItem('camera_preset', camera_preset);
+      }
+      $camerapresetSelect.addEventListener('change', onCameraPresetChange);
+
+      // 
+      let guides_preset;
+      if (localStorage.getItem('guides_preset'))
+        $guidespresetSelect.value = localStorage.getItem('guides_preset');
+      onGuidesPresetChange();
+      function onGuidesPresetChange() {
+        guides_preset = $guidespresetSelect.value;
+        localStorage.setItem('guides_preset', guides_preset);
+      }
+      $guidespresetSelect.addEventListener('change', onGuidesPresetChange);
+
+      // 
+      let lod_preset;
+      if (localStorage.getItem('lod_preset'))
+        $lodpresetSelect.value = localStorage.getItem('lod_preset');
+      onLodPresetChange();
+      function onLodPresetChange() {
+        lod_preset = $lodpresetSelect.value;
+        localStorage.setItem('lod_preset', lod_preset);
+      }
+      $lodpresetSelect.addEventListener('change', onLodPresetChange);
+
+      // 
+      let wireframe_preset;
+      if (localStorage.getItem('wireframe_preset'))
+        $wireframepresetSelect.value = localStorage.getItem('wireframe_preset');
+      onWireframePresetChange();
+      function onWireframePresetChange() {
+        wireframe_preset = $wireframepresetSelect.value;
+        localStorage.setItem('wireframe_preset', wireframe_preset);
+      }
+      $wireframepresetSelect.addEventListener('change', onWireframePresetChange);
+
+      // Some keypresses cycle through <SELECT> dropdowns.
+      window.addEventListener('keydown', evt => {
+        switch (evt.key) {
+          case 'E': cycleBackward($environmentSelect); break;
+          case 'e': cycleForward($environmentSelect); break;
+          case 'S': cycleBackward($scenecontainernameSelect); break;
+          case 's': cycleForward($scenecontainernameSelect); break;
+          case 'F': cycleBackward($framerateSelect); break;
+          case 'f': cycleForward($framerateSelect); break;
+          case 'C': cycleBackward($camerapresetSelect); break;
+          case 'c': cycleForward($camerapresetSelect); break;
+          case 'G': cycleBackward($guidespresetSelect); break;
+          case 'g': cycleForward($guidespresetSelect); break;
+          case 'L': cycleBackward($lodpresetSelect); break;
+          case 'l': cycleForward($lodpresetSelect); break;
+          case 'W': cycleBackward($wireframepresetSelect); break;
+          case 'w': cycleForward($wireframepresetSelect); break;
+        }
+      })
+      function cycleBackward($select) {
+        const [selectedIndex, lastIndex] = findSelectedAndLastIndex($select);
+        if (selectedIndex === 0)
+          $select.value = $select[lastIndex].value;
+        else
+          $select.value = $select[selectedIndex - 1].value;
+        $select.dispatchEvent(new Event('change'));
+      }
+      function cycleForward($select) {
+        const [selectedIndex, lastIndex] = findSelectedAndLastIndex($select);
+        if (selectedIndex === lastIndex)
+          $select.value = $select[0].value;
+        else
+          $select.value = $select[selectedIndex + 1].value;
+        $select.dispatchEvent(new Event('change'));
+      }
+      function findSelectedAndLastIndex($select) {
+        let selectedIndex = null, i = 0, $option;
+        for (; $option=$select[i]; i++)
+          if ($select.value === $option.value) selectedIndex = i;
+        if (selectedIndex === null) throw Error('Nothing selected?!');
+        return [selectedIndex, i - 1];
+      }
+
+
+
+
+      // INPUT EVENTS
+
+      // `origin_x` and `origin_y` are passed to App on every tick().
+      // They usually change when the browser window is resized.
+      let { x: origin_x, y: origin_y } = $canvas.getBoundingClientRect();
+      window.addEventListener('resize', _ => {
+        const rect = $canvas.getBoundingClientRect();
+        origin_x = rect.x;
+        origin_y = rect.y;
+      });
+
+      // The mouse’s main button was depressed, or a touchscreen tap began.
+      // If more than one 'mousedown' occurs between tick() calls, only the most
+      // recent one is sent to App.
+      let down_evt_x = -1;
+      let down_evt_y = -1;
+      $canvas.addEventListener('mousedown', evt => {
+        down_evt_x = evt.x;
+        down_evt_y = evt.y;
+      });
+
+
+
+
+      // INITIALISE
+
+      // Get the window’s current URL hash. Strip the leading '#' character.
+      let { hash } = window.location;
+      hash = hash.slice(0,1) === '#' ? hash.slice(1) : hash;
+
+      // Create an instance of App.
+      const app = App.new(
+        1024,  // canvas_extent_horizontal
+        576,   // canvas_extent_vertical
+        'app', // canvas_id
+        SceneContainerName[scene_container_name], // scene_container_name
+        CameraPreset[camera_preset], // camera_preset
+        GuidesPreset[guides_preset], // guides_preset
+        LodPreset[lod_preset], // lod_preset
+        WireframePreset[wireframe_preset], // wireframe_preset
+      );
+
+
+
+
+      // PARAMETERS
+
+      const designHtml = ['<p id="design-notes">Loading...</p>'];
+      const $$parameterPresets = [];
+      const parameterPresets = JSON.parse(app.get_presets()).map(({ notes, title, values }) => ({
+        title, onclick: () => setParameterValues(values, notes)
+      }));
+      if (parameterPresets[1])
+        parameterPresets.unshift({ title:'Log Params', onclick: () => logParameterValues() });
+      else
+        $design.style.display = 'none';
+
+      parameterPresets.forEach((parameterPreset, i) => {
+        const title = parameterPreset.title;
+        window.parameterPresetOnclick = window.parameterPresetOnclick || [];
+        window.parameterPresetOnclick.push(parameterPreset.onclick);
+        designHtml.push(`
+          <button id="${name}" onclick="window.parameterPresetOnclick[${i}]()">${title}</button>
+        `);
+      });
+
+
+      // Each Scene can define zero or more fieldsets.
+      // Each one will have a slider created for it
+      const fieldsets = JSON.parse(app.get_fieldsets());
+      const $$fieldsets = [];
+      const $$parameters_a = []; // part of an ab pair
+      const $$parameters_b = []; // part of an ab pair
+      const $$parameters_s = [];
+      const $$parameters_sm = [];
+      const $$parameters_tm = [];
+      fieldsets.forEach(fieldset => {
+        designHtml.push(`
+          <fieldset class="${fieldset.kind}" id="${fieldset.id}"><h4>
+            &nbsp; &nbsp; ${fieldset.heading}</h4>
+        `);
+        fieldset.parameters.forEach(parameter => {
+          if (fieldset.kind === 'iu') {
+            const { min, max, name, step, title } = parameter;
+            const val_a = 0;
+            const val_b = 0;
+            designHtml.push(`
+              <div>
+                <span class="val-a" onclick="this.innerHTML='&nbsp;0.00';
+                  this.parentNode.querySelector('input.slider-a').value=0"
+                >${formatFloat(val_a)}</span>
+                <input class="slider-a" type="range" name="${name}-a" id="${name}-a" value="${val_a}"
+                min="${min}" max="${max}" step="${step}">
+                <label title="${fieldset.heading} ${title}" onclick="
+                  this.parentNode.querySelector('input.slider-a').value=${val_a};
+                  this.parentNode.querySelector('span.val-a').innerHTML='${formatFloat(val_a)}'
+                  this.parentNode.querySelector('input.slider-b').value=${val_b};
+                  this.parentNode.querySelector('span.val-b').innerHTML='${formatFloat(val_b)}'"
+                >${name}</label>
+                <input class="slider-b" type="range" name="${name}-b" id="${name}-b" value="${val_b}"
+                min="${min}" max="${max}" step="${step}">
+                <span class="val-b" onclick="this.innerHTML='&nbsp;0.00';
+                  this.parentNode.querySelector('input.slider-b').value=0"
+                >${formatFloat(val_b)}</span>
+              </div>
+            `);
+          } else if (fieldset.kind === 'single') {
+            const { min, max, name, step, title } = parameter;
+            const val_s = 0;
+            designHtml.push(`
+              <div>
+                <label title="${fieldset.heading} ${title}" onclick="
+                  this.parentNode.querySelector('input.slider-s').value=${val_s};
+                  this.parentNode.querySelector('span.val-s').innerHTML='${formatFloat(val_s)}'"
+                >&nbsp;${name}</label>
+                <input class="slider-s" type="range" name="${name}-s" id="${name}-s" value="${val_s}"
+                min="${min}" max="${max}" step="${step}">
+                <span class="val-s" onclick="this.innerHTML='&nbsp;0.00';
+                  this.parentNode.querySelector('input.slider-s').value=0"
+                >${formatFloat(val_s)}</span>
+              </div>
+            `);
+          } else { throw Error(`No such fieldset.kind ${fieldset.kind}`) }
+        });
+        if (fieldset.kind === 'iu') {
+          const { id, sm, tm } = fieldset;
+          designHtml.push(`<div>`);
+          for (let i=0; i<4; i++) {
+            designHtml.push(`
+              <span class="val-sm${i}" onclick="this.innerHTML='&nbsp;&nbsp;0';
+                this.parentNode.querySelector('#${id}-sm${i}').value=0">${formatMini(sm[i])}</span>
+              <input class="slider-sm" type="range" name="${id}-sm${i}"
+                id="${id}-sm${i}" value="${sm[i]}" min="0" max="1" step="0.01">
+            `);
+          }
+          designHtml.push(`<label title="${fieldset.heading} Timermix" onclick="`);
+          for (let i=0; i<4; i++) {
+            designHtml.push(`
+              this.parentNode.querySelector('#${id}-sm${i}').value=${sm[i]};
+              this.parentNode.querySelector('span.val-sm${i}').innerHTML='${formatMini(sm[i])}';
+            `);
+          }
+          designHtml.push(`">&nbsp;sm</label></div><div>`);
+          for (let i=0; i<4; i++) {
+            designHtml.push(`
+              <span class="val-tm${i}" onclick="this.innerHTML='&nbsp;&nbsp;0';
+                this.parentNode.querySelector('#${id}-tm${i}').value=0">${formatMini(tm[i])}</span>
+              <input class="slider-tm" type="range" name="${id}-tm${i}"
+                id="${id}-tm${i}" value="${tm[i]}" min="0" max="1" step="0.01">
+            `);
+          }
+          designHtml.push(`<label title="${fieldset.heading} Slidermix" onclick="`);
+          for (let i=0; i<4; i++) {
+            designHtml.push(`
+              this.parentNode.querySelector('#${id}-tm${i}').value=${tm[i]};
+              this.parentNode.querySelector('span.val-tm${i}').innerHTML='${formatMini(tm[i])}';
+            `);
+          }
+          designHtml.push(`">&nbsp;tm</label></div>`);
+        }
+        designHtml.push(`</fieldset>`);
+      });
+      $design.innerHTML = designHtml.join('\n');
+      fieldsets.forEach(fieldset => {
+        const $fieldset = document.querySelector(`#${fieldset.id}`);
+        $$fieldsets.push($fieldset);
+        $fieldset.querySelector('h4').addEventListener('click', function (evt) {
+          $fieldset.classList.toggle('hid');
+        });
+        fieldset.parameters.forEach(parameter => {
+          if (fieldset.kind === 'iu') {
+            const $parameter_a = document.querySelector(`#${parameter.name}-a`);
+            const $parameter_b = document.querySelector(`#${parameter.name}-b`);
+            $$parameters_a.push($parameter_a);
+            $$parameters_b.push($parameter_b);
+            $parameter_a.addEventListener('input', function (evt) {
+              this.parentNode.querySelector('span.val-a').innerHTML =
+                formatFloat(this.value);
+            });
+            $parameter_b.addEventListener('input', function (evt) {
+              this.parentNode.querySelector('span.val-b').innerHTML =
+                formatFloat(this.value);
+            });
+          } else { // must be 'single'
+            const $parameter_s = document.querySelector(`#${parameter.name}-s`);
+            $$parameters_s.push($parameter_s);
+            $parameter_s.addEventListener('input', function (evt) {
+              this.parentNode.querySelector('span.val-s').innerHTML =
+                formatFloat(this.value);
+            });
+          }
+        });
+        if (fieldset.kind === 'iu') {
+          for (let i=0; i<4; i++) {
+            const $parameter_sm = document.querySelector(`#${fieldset.id}-sm${i}`);
+            const $parameter_tm = document.querySelector(`#${fieldset.id}-tm${i}`);
+            $$parameters_sm.push($parameter_sm);
+            $$parameters_tm.push($parameter_tm);
+            $parameter_sm.addEventListener('input', function (evt) {
+              this.parentNode.querySelector(`span.val-sm${i}`).innerHTML =
+                formatMini(this.value);
+            });
+            $parameter_tm.addEventListener('input', function (evt) {
+              this.parentNode.querySelector(`span.val-tm${i}`).innerHTML =
+                formatMini(this.value);
+            });
+          }
+        }
+      });
+      if (parameterPresets.length) parameterPresets[1].onclick(); // set sliders to the ‘Default’ preset
+
+      function logParameterValues() {
+        document.querySelector('#design-notes').innerHTML = `<pre>
+,{ "title":"Untitled Preset", "notes":"No notes for this preset", "values": [
+  ${$$parameters_a.map($parameter_a => $parameter_a.value)},
+  ${$$parameters_b.map($parameter_b => $parameter_b.value)},
+  ${$$parameters_sm.map($parameter_sm => $parameter_sm.value)},
+  ${$$parameters_tm.map($parameter_tm => $parameter_tm.value)},
+  ${$$parameters_s.map($parameter_s => $parameter_s.value)},
+  ${$$fieldsets.map($fieldset => $fieldset.classList.contains('hid') ? 1 : 0)}
+]}</pre>`;
+      }
+
+      function stringifyParameterValues() {
+        return [].concat(
+          $$parameters_a.map($parameter_a => $parameter_a.value),
+          $$parameters_b.map($parameter_b => $parameter_b.value),
+          $$parameters_sm.map($parameter_sm => $parameter_sm.value),
+          $$parameters_tm.map($parameter_tm => $parameter_tm.value),
+          $$parameters_s.map($parameter_s => $parameter_s.value)
+        ).join(',');
+      }
+
+      function setParameterValues(values, notes) {
+        document.querySelector('#design-notes').innerHTML = notes || '';
+        // Six fieldsets, each containing four pairs (val_a and val_b) plus four Shadermix, plus four Timermix.
+        const NUM_AB = 6 * 16;
+        const NUM_SINGLE = 7;
+
+        let offset = 0;
+        $$parameters_a.forEach( ($parameter_a, i) => {
+          const value = values[offset + i];
+          $parameter_a.value = value;
+          $parameter_a.parentNode.querySelector('span.val-a').innerHTML = formatFloat(value);
+        });
+
+        offset = NUM_AB / 4;
+        $$parameters_b.forEach( ($parameter_b, i) => {
+          const value = values[offset + i];
+          $parameter_b.value = value;
+          $parameter_b.parentNode.querySelector('span.val-b').innerHTML = formatFloat(value);
+        });
+
+        offset = NUM_AB / 2;
+        $$parameters_sm.forEach( ($parameter_sm, i) => {
+          const value = values[offset + i];
+          $parameter_sm.value = value;
+          $parameter_sm.parentNode.querySelector(`span.val-sm${i % 4}`).innerHTML = formatMini(value);
+        });
+
+        offset = NUM_AB * 3 / 4;
+        $$parameters_tm.forEach( ($parameter_tm, i) => {
+          const value = values[offset + i];
+          $parameter_tm.value = value;
+          $parameter_tm.parentNode.querySelector(`span.val-tm${i % 4}`).innerHTML = formatMini(value);
+        });
+
+        offset = NUM_AB;
+        $$parameters_s.forEach( ($parameter_s, i) => {
+          const value = values[offset + i];
+          $parameter_s.value = value;
+          $parameter_s.parentNode.querySelector('span.val-s').innerHTML = formatFloat(value);
+        });
+
+        offset = NUM_AB + NUM_SINGLE;
+        $$fieldsets.forEach( ($fieldsets, i) => {
+          if (values[offset + i] === 1)
+            $fieldsets.classList.add('hid')
+          else
+            $fieldsets.classList.remove('hid')
+        });
+      }
+
+      //@TODO deal with numbers smaller than -9999 and larger than +9999
+      function formatFloat(value) {
+        let formatted = Number.parseFloat(value).toPrecision(4);
+        return value < 0
+          ? formatted.slice(0, 5)
+          : '&nbsp;' + formatted.slice(0, 4);
+      }
+
+      function formatMini(value) {
+        let formatted = Math.round(value * 100);
+        return formatted === 100
+          ? formatted // already 3 characters
+          : formatted > 9
+            ? '&nbsp;' + formatted // already 2 characters
+            : '&nbsp;&nbsp;' + formatted // is 1 character
+      }
+
+
+
+
+      // TICK
+
+      // The benchmarking version of `tick()`.
+      // Runs at the fps specified in the #framerate dropdown, and updates all
+      // ten performance bars individually. 
+      function tick_benchmark(
+        time_in_ms // milliseconds since the start of the document’s lifetime
+      ) {
+
+
+
+
+        // Phase 1: Update the App’s state.
+        app.update_state(
+
+          // Phase 1A: Update the App’s internal Timer.
+          // Note that the App uses seconds, not milliseconds, internally.
+          time_in_ms,
+
+          // Phase 1B: Tell the App about any new input events.
+          origin_x,
+          origin_y,
+          down_evt_x,
+          down_evt_y,
+          CameraPreset[camera_preset], // camera_preset
+          GuidesPreset[guides_preset], // guides_preset
+          LodPreset[lod_preset], // lod_preset
+          WireframePreset[wireframe_preset], // wireframe_preset
+          stringifyParameterValues(), // parameter_values
+
+          // Phase 1C: Determine pointer intersection.
+          // This may change the `intersect_id` state.
+
+        );
+        const phase1_time = performance.now();
+
+
+
+
+        // Phase 2: Propogate some of the state to the Nodes that need to know.
+        // Will generate 0..n Reply instances.
+        app.advise(
+
+        );
+        const phase2_time = performance.now();
+
+
+
+
+        // Phase 3: Update the Schedule of Ops.
+        app.reschedule(
+          // Phase 3A: Transform the Reply instances to Op instances.
+          // Will produce a vector of Ops with times.
+
+          // Phase 3B: Use the new Ops to cancel some Ops in the Schedule.
+          // A scheduled GUI prompt is cancelled if the user clicks the widget.
+
+          // Phase 3C: Add the new Ops (not the cancellers) to the Schedule.
+          // Some of the new Ops have time 0, to execute them immediately.
+
+        );
+        const phase3_time = performance.now();
+
+
+
+
+        // Phase 4: Execute all Ops in the Schedule whose time has expired.
+        // And remove the executed Ops which were not set to repeat.
+        app.execute(
+        );
+        const phase4_time = performance.now();
+
+
+
+
+
+        // Phase 5: Run physics simulations, animations and tweens.
+        app.simulate();
+        const phase5_time = performance.now();
+
+
+
+
+        // Phase 6: Propogate the draw() call to all visible Nodes.
+        // Will generate 0..n Shapes.
+        app.draw(
+        );
+        const phase6_time = performance.now();
+
+
+
+
+        // Phase 7: Cull some Shapes and sort the rest in z-order.
+        // May reduce the number of Shapes.
+        app.quickdraw(
+        );
+        const phase7_time = performance.now();
+
+
+
+
+        // Phase 8: Clear the canvas and render the Shapes.
+        // Eventually we could substitute WebGL for WebGL2 or WebCPU.
+        app.render(
+        );
+        const phase8_time = performance.now();
+
+
+
+
+        // Phase 9: If certain state values have changed, inform the browser.
+        // For example, the cursor may need to change to a pointer.
+        const report = app.report(
+        );
+        const phase9_time = performance.now();
+
+
+
+
+        // Reset, ready for any new input events that occur before next tick().
+        down_evt_x = -1;
+        down_evt_y = -1;
+
+        // Update the performance bars.
+        const total = phase9_time - time_in_ms;
+        $total.style.width = `${Math.max(1,(total)*10)}px`;
+        $total.style.backgroundColor =
+          total < 8 ? '#0f0' : total < 16 ? '#fc0' : '#f06';
+        $phase1.style.width = `${Math.max(1,(phase1_time - time_in_ms)*10)}px`;
+        $phase2.style.width = `${Math.max(1,(phase2_time - phase1_time)*10)}px`;
+        $phase3.style.width = `${Math.max(1,(phase3_time - phase2_time)*10)}px`;
+        $phase4.style.width = `${Math.max(1,(phase4_time - phase3_time)*10)}px`;
+        $phase5.style.width = `${Math.max(1,(phase5_time - phase4_time)*10)}px`;
+        $phase6.style.width = `${Math.max(1,(phase6_time - phase5_time)*10)}px`;
+        $phase7.style.width = `${Math.max(1,(phase7_time - phase6_time)*10)}px`;
+        $phase8.style.width = `${Math.max(1,(phase8_time - phase7_time)*10)}px`;
+        $phase9.style.width = `${Math.max(1,(phase9_time - phase8_time)*10)}px`;
+
+        // If the #framerate dropdown menu is set to '60 fps', use JavaScript’s
+        // requestAnimationFrame() to schedule the next tick().
+        switch (framerate) {
+          case 'sixty':
+            return requestAnimationFrame(tick);
+          case 'twelve':
+            return setTimeout(_ => tick(performance.now()), 1000/12);
+          case 'one':
+            return setTimeout(_ => tick(performance.now()), 1000);
+        }
+      }
+
+
+
+
+      // The development version of `tick()`.
+      // Runs at the fps specified in the #framerate dropdown, and only updates
+      // the ‘total’ performance bar.
+      function tick_develop(
+        time_in_ms
+      ) {
+        // Call app.tick(), which runs all phases, from 1 to 9.
+        const report = app.tick(
+          time_in_ms,
+          origin_x,
+          origin_y,
+          down_evt_x,
+          down_evt_y,
+          CameraPreset[camera_preset], // camera_preset
+          GuidesPreset[guides_preset], // guides_preset
+          LodPreset[lod_preset], // lod_preset
+          WireframePreset[wireframe_preset], // wireframe_preset
+          stringifyParameterValues(), // parameter_values
+        );
+        const phase9_time = performance.now();
+
+
+
+
+        // Reset, ready for any new input events that occur before next tick().
+        down_evt_x = -1;
+        down_evt_y = -1;
+
+        // Update the performance bars.
+        const total = phase9_time - time_in_ms;
+        $total.style.width = `${Math.max(1,(total)*10)}px`;
+
+        // If the #framerate dropdown menu is set to '60 fps', use JavaScript’s
+        // requestAnimationFrame() to schedule the next tick().
+        switch (framerate) {
+          case 'sixty':
+            return requestAnimationFrame(tick);
+          case 'twelve':
+            return setTimeout(_ => tick(performance.now()), 1000/12);
+          case 'one':
+            return setTimeout(_ => tick(performance.now()), 1000);
+        }
+      }
+
+
+
+
+      // The production version of `tick()`.
+      // Always runs at 60fps (ignoring the #framerate dropdown), and doesn’t
+      // update any of the #performance bars.
+      function tick_production(
+        time_in_ms
+      ) {
+        // Call app.tick(), which runs all phases, from 1 to 9.
+        const report = app.tick(
+          time_in_ms,
+          origin_x,
+          origin_y,
+          down_evt_x,
+          down_evt_y,
+          CameraPreset[camera_preset], // camera_preset
+          GuidesPreset[guides_preset], // guides_preset
+          LodPreset[lod_preset], // lod_preset
+          WireframePreset[wireframe_preset], // wireframe_preset
+          stringifyParameterValues(), // parameter_values
+        );
+
+        // Reset, ready for any new input events that occur before next tick().
+        down_evt_x = -1;
+        down_evt_y = -1;
+
+        // The #framerate dropdown menu is ignored in production.
+        return requestAnimationFrame(tick);
+      }
+
+
+
+
+      // Start the render loop.
+      if (framerate !== 'off') {
+        tick(performance.now());
+      }
+
+      // function onTick(time_in_ms) {
+      //   game.set_now(time_in_ms); // internally, Game records `now` in seconds
+      //   const nextCursorKind = game.render();
+      //   if (cursorKind !== nextCursorKind) onDifferentCursorKind(nextCursorKind);
+      //   requestAnimationFrame(onTick);
+      // }
+
+
+    } catch (e) { console.error(2, e) } }
+  </script>
+
+  <script>{
+    // FRW uses the hash in the browser’s address bar as an app `snapshot`.
+    // This snapshot is divided into four parts:
+    // 1. The first 3 characters encode the app’s name
+    // 2. The next 2 characters encode the app’s major and minor version
+    // 3. The next 2 characters encode the app’s `scene` and `palette`
+    // 4. The rest encodes app state which the user can save and share
+
+    // Get the window’s current URL hash. Strip the leading '#' character.
+    let { hash } = window.location;
+    hash = hash.slice(0,1) === '#' ? hash.slice(1) : hash;
+
+    // If the the app’s name code is not 'frw', get rid of the hash completely.
+    hash = hash.slice(0,3) === 'frw' ? hash : '';
+
+    // If there is no hash, navigate to the most recent version.
+    // Choose random values for the palette and scene.
+    if (hash === '') {
+      const paletteCode = ~~(Math.random() * 1); // 0
+      const paletteChar = ['b'][paletteCode]; // 'b'
+      const sceneCode = ~~(Math.random() * 2); // 0 or 1
+      const sceneChar = ['b', 'c'][sceneCode]; // 'b' or 'c'
+      hash = `frwbb${paletteChar}${sceneChar}`; // 'frwbbbb' or 'frwbbbc'
+      window.location.hash = hash;
+    }
+
+    // Get the `major` part of the version.
+    // If it’s not present, default to the latest version.
+    const majorChar = hash.slice(3,4) || 'b';
+    const majorCode = {
+      b: 0,
+      // c: 1,
+      // d: 2,
+      // f: 3,
+    }[majorChar];
+
+    // @TODO show a popup if the user is not looking at the most recent
+    // version of the app — they may have just followed an old link.
+    // The loaded binary doesn’t know it’s not the latest version.
+
+    // Load and init the binary for the specified `major` version.
+    // For example, if the window’s current URL hash is '#frwbcdefg', the 'b'
+    // is converted to `0`, so the binary in ‘./lib/wasm/v0/’ will be loaded.
+    // 
+    // `frw_init()` will pass the entire hash (minus the leading #) in to the
+    // `snapshot` argument of `App::new()`. Note that the binary will check
+    // that the `major` part of the version is the one it has been built for.
+    // It will also run more validation on the snapshot.
+    const $script = document.createElement('script');
+    $script.type = 'module';
+    $script.innerHTML = `
+      import { default as wasm, App, CameraPreset, GuidesPreset,
+        LodPreset, SceneContainerName, WireframePreset } from
+        './lib/wasm/v${majorCode}/frw.js';
+      wasm()
+        .then(module => window.frw_init(App, CameraPreset, GuidesPreset,
+        LodPreset, SceneContainerName, WireframePreset))
+        .catch(e => console.error(1, e))
+    `;
+    document.body.appendChild($script);
+  }</script>
+
+</body></html>
